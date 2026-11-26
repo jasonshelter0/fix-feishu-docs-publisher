@@ -4,3 +4,5 @@ node_modules/
 dist/
 src/embedded-helpers.ts
 main.js
+/data.json
+/lark-sync-state.json

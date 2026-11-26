@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+## [0.1.0-fix-02]
+
+Fix Feishu Docs Publisher now checks NVM installations for npm and shows the command error when detection fails. The installer also supports building directly inside the vault plugin folder.
+
 ## [0.4.3] - 2026-11-01
 
 ### 新增

@@ -19,7 +19,7 @@ import {
 } from "obsidian";
 import { ChildProcess, execFile, spawn } from "child_process";
 import { constants } from "fs";
-import { access, chmod, copyFile, mkdir, readFile, rename, stat } from "fs/promises";
+import { access, chmod, copyFile, mkdir, readFile, readdir, rename, stat } from "fs/promises";
 import { mkdtemp, rm, writeFile } from "fs/promises";
 import { basename, dirname, join } from "path";
 import { homedir, tmpdir } from "os";
@@ -5127,10 +5127,24 @@ exec "${nodePath}" "${scriptPath}" "$@"
 
 	private async getNpmToolStatus(): Promise<LarkCliToolStatus> {
 		const loginShellPath = await this.resolveCommandFromLoginShell("npm").catch(() => "");
+		// Some Node version managers expose npx on the PATH Obsidian inherits while
+		// npm itself is only available beside that shim. Resolve npx through the
+		// same login shell and probe its sibling npm executable as a fallback.
+		const loginShellNpxPath = await this.resolveCommandFromLoginShell("npx").catch(() => "");
+		const npmBesideNpx = loginShellNpxPath
+			? join(dirname(loginShellNpxPath), process.platform === "win32" ? "npm.cmd" : "npm")
+			: "";
+		const versionsDir = join(process.env.NVM_DIR || join(homedir(), ".nvm"), "versions", "node");
+		const versions = process.platform === "win32" ? [] : await readdir(versionsDir).catch((): string[] => []);
+		const nvmCandidates = versions.filter(version => /^v\d+\.\d+\.\d+$/.test(version))
+			.sort((a, b) => b.localeCompare(a, "en", { numeric: true }))
+			.map(version => join(versionsDir, version, "bin", "npm"));
 		const candidates = uniquePathEntries([
 			loginShellPath,
+			npmBesideNpx,
 			process.platform === "win32" ? "npm.cmd" : "npm",
-			"npm"
+			"npm",
+			...nvmCandidates
 		]);
 		let lastError = "";
 		for (const candidate of candidates) {
@@ -5428,10 +5442,14 @@ exec "${nodePath}" "${scriptPath}" "$@"
 	private async resolveCommandFromLoginShell(command: string): Promise<string> {
 		for (const shell of this.getShellCandidates()) {
 			try {
-				const { stdout } = await execFileAsync(shell, ["-lc", `command -v ${command}`], {
+				const marker = "__FEISHU_CLI_COMMAND__";
+				const { stdout } = await execFileAsync(shell, ["-lc", `command -v ${command}; printf '\\n${marker}'`], {
 					maxBuffer: 1024 * 1024
 				});
-				const resolvedPath = stdout.trim().split(/\r?\n/)[0] || "";
+				const markerIndex = stdout.lastIndexOf(marker);
+				const resolvedPath = markerIndex >= 0
+					? stdout.slice(0, markerIndex).trim().split(/\r?\n/).at(-1)?.trim() || ""
+					: "";
 				if (resolvedPath) {
 					return resolvedPath;
 				}
@@ -5464,10 +5482,12 @@ exec "${nodePath}" "${scriptPath}" "$@"
 	private async resolveLoginShellPathUncached(): Promise<string> {
 		for (const shell of this.getShellCandidates()) {
 			try {
-				const { stdout } = await execFileAsync(shell, ["-lc", "printf %s \"$PATH\""], {
+				const marker = "__FEISHU_CLI_PATH__";
+				const { stdout } = await execFileAsync(shell, ["-lc", `printf '\\n${marker}%s\\n' "$PATH"`], {
 					maxBuffer: 1024 * 1024
 				});
-				const path = stdout.trim();
+				const markerIndex = stdout.lastIndexOf(marker);
+				const path = markerIndex >= 0 ? stdout.slice(markerIndex + marker.length).trim() : "";
 				if (path) {
 					return path;
 				}
@@ -6507,7 +6527,7 @@ class LarkCliSyncSettingTab extends PluginSettingTab {
 			}
 			lines.push(status.npm.available
 				? this.plugin.t("cliStatusNpmReady", { version: status.npm.version || "npm" })
-				: this.plugin.t("cliStatusNpmMissing"));
+				: [this.plugin.t("cliStatusNpmMissing"), status.npm.error.slice(0, 400)].filter(Boolean).join("\n"));
 			if (status.installed) {
 				if (status.latestVersion && status.updateAvailable) {
 					lines.push(this.plugin.t("cliStatusUpdateAvailable", { version: status.latestVersion }));

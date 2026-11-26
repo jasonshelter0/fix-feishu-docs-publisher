@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PLUGIN_ID="feishu-docs-publisher"
+PLUGIN_ID="fix-feishu-docs-publisher"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 VAULT_PATH="${1:-}"
@@ -38,6 +38,9 @@ for file in manifest.json main.js lark-sync-core.mjs lark-cli-command.mjs README
     exit 1
   fi
 
+  if [ "$REPO_DIR/$file" -ef "$PLUGIN_DIR/$file" ]; then
+    continue
+  fi
   cp "$REPO_DIR/$file" "$PLUGIN_DIR/$file"
 done
 
@@ -53,7 +56,7 @@ if [ -f "$HOOK_PATH" ] && grep -Eq "Feishu Docs Publisher|Feishu Lark CLI Sync" 
 fi
 
 echo "已安装到 / Installed to: $PLUGIN_DIR"
-echo "请在 Obsidian 设置中启用 Feishu Docs Publisher。"
-echo "Enable Feishu Docs Publisher in Obsidian settings."
+echo "请在 Obsidian 设置中启用 Fix Feishu Docs Publisher。"
+echo "Enable Fix Feishu Docs Publisher in Obsidian settings."
 echo "启用后在“CLI 与授权”中安装/升级 lark-cli、创建应用并登录。"
 echo "Then use CLI & authorization in settings to install/upgrade lark-cli, create the app, and sign in."

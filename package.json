@@ -1,7 +1,7 @@
 {
-	"name": "feishu-docs-publisher",
-	"version": "0.4.3",
-	"description": "Publish and sync Markdown notes, folders, and PDFs to Feishu/Lark Docs through the local lark-cli.",
+	"name": "fix-feishu-docs-publisher",
+	"version": "0.1.0-fix-02",
+	"description": "Fix bug of the Feishu Doc Publisher plugin: Publish and sync Markdown notes, folders, and PDFs to Feishu/Lark Docs through the local lark-cli.",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {
@@ -18,7 +18,7 @@
 		"feishu",
 		"lark-cli"
 	],
-	"author": "totok22",
+	"author": "Jason Shelter",
 	"license": "MIT",
 	"devDependencies": {
 		"@types/markdown-it": "^14.2.0",

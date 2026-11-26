@@ -158,12 +158,12 @@ export function buildCommandEnvironment(
 ): Record<string, string | undefined> {
 	const env = options.env || process.env;
 	const pathEntries = getDefaultPathEntries(env, options.homeDir || homedir());
-	if (isAbsoluteCommandPath(executable)) {
-		pathEntries.unshift(dirname(executable));
-	}
-
 	if (options.loginShellPath) {
 		pathEntries.unshift(...options.loginShellPath.split(delimiter).filter(Boolean));
+	}
+
+	if (isAbsoluteCommandPath(executable)) {
+		pathEntries.unshift(dirname(executable));
 	}
 
 	if (env.PATH) {
